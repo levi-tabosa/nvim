@@ -7,6 +7,8 @@ vim.opt.number = true         -- Line numbers
 vim.opt.relativenumber = true -- Relative line numbers
 vim.opt.tabstop = 2           -- 2 spaces per tab
 vim.opt.shiftwidth = 2        -- 2 spaces for indentation
+vim.opt.scrolloff = 8         -- Keep 8 lines of context above and below the cursor
+vim.opt.sidescrolloff = 5     -- Keep 5 columns of context to the left and right
 vim.opt.expandtab = true      -- Use spaces instead of tabs
 vim.opt.mouse = "a"           -- Enable mouse support
 vim.opt.termguicolors = true  -- Enable true 24-bit colors
@@ -49,10 +51,13 @@ map("n", "<leader>ww", function()
   end
 end, { desc = "Toggle word wrap" })
 
--- Scroll horizontally with Shift + Mouse Wheel
-map({ "n", "v" }, "<S-ScrollWheelDown>", "7zl", { desc = "Scroll right" })
-map({ "n", "v" }, "<S-ScrollWheelUp>", "7zh", { desc = "Scroll left" })
+-- Scroll vertically with Mouse Wheel
+map({ "n", "v" }, "<ScrollWheelDown>", "4<C-e>", { desc = "Scroll down" })
+map({ "n", "v" }, "<ScrollWheelUp>", "4<C-y>", { desc = "Scroll up" })
 
+-- Scroll horizontally with Shift + Mouse Wheel
+map({ "n", "v" }, "<S-ScrollWheelDown>", "10zl", { desc = "Scroll right" })
+map({ "n", "v" }, "<S-ScrollWheelUp>", "10zh", { desc = "Scroll left" })
 -- File operations
 map("n", "<C-s>", ":w<CR>", { desc = "Save file" })
 map("i", "<C-s>", "<Esc>:w<CR>a", { desc = "Save file" })
@@ -60,8 +65,6 @@ map("i", "<C-s>", "<Esc>:w<CR>a", { desc = "Save file" })
 map("n", "<C-w>", ":bdelete<CR>", { desc = "Close buffer (file tab)" })
 
 -- Editing
-map('n', '<C-;>', 'gcc', { noremap = false, desc = "Toggle comment line" })
-map('v', '<C-;>', 'gc', { noremap = false, desc = "Toggle comment selection" })
 map("i", "<C-z>", "<Esc>ua", { desc = "Undo" })
 map("i", "<C-y>", "<Esc><C-r>a", { desc = "Redo" })
 map("n", "<C-z>", "u", { desc = "Undo" })
@@ -115,8 +118,8 @@ map('n', '<C-S-Right>', 'v<C-Right>')
 -- Extend selection in Visual Mode
 map('v', '<S-Left>', '<Left>')
 map('v', '<S-Right>', '<Right>')
-map('v', '<S-Up>', '<Up>')
-map('v', '<S-Down>', '<Down>')
+-- map('v', '<S-Up>', '<Up>')
+-- map('v', '<S-Down>', '<Down>')
 map('v', '<C-S-Left>', '<C-Left>')
 map('v', '<C-S-Right>', '<C-Right>')
 
@@ -275,13 +278,13 @@ require("lazy").setup({
       { 'hrsh7th/nvim-cmp' },
       { 'hrsh7th/cmp-nvim-lsp' },
       { 'L3MON4D3/LuaSnip' },
+      { 'onsails/lspkind.nvim' },
     },
     config = function()
       local lsp = require('lsp-zero').preset({})
 
       lsp.on_attach(function(client, bufnr)
         lsp.default_keymaps({ buffer = bufnr })
-        -- Add more LSP keymaps here
         map('n', 'K', vim.lsp.buf.hover, { buffer = bufnr, desc = "Hover Documentation" })
         map('n', 'gd', vim.lsp.buf.definition, { buffer = bufnr, desc = "Go to Definition" })
         map('n', '<leader>ca', vim.lsp.buf.code_action, { buffer = bufnr, desc = "Code Action" })
@@ -290,39 +293,33 @@ require("lazy").setup({
 
       require('mason-lspconfig').setup({
         ensure_installed = {
-          -- ADDED zls
-          'lua_ls',
-          'pyright',
-          'ts_ls',
-          'jdtls',
-          'rust_analyzer',
-          'clangd',
-          'zls',
+          'lua_ls', 'pyright', 'ts_ls', 'jdtls', 'rust_analyzer', 'clangd', 'zls',
         },
         handlers = { lsp.default_setup }
       })
 
-      -- Configure the Lua server
-      lsp.configure('lua_ls', {
-        settings = {
-          Lua = {
-            diagnostics = {
-              globals = { 'vim' },
-            },
-            workspace = {
-              library = vim.api.nvim_get_runtime_file("", true),
-              checkThirdParty = false,
-            },
-            telemetry = {
-              enable = false,
-            },
-          },
-        },
-      })
-
-      -- Configure cmp keymaps
+      -- Configure cmp
       local cmp = require('cmp')
+      local lspkind = require('lspkind')
+
       lsp.setup_nvim_cmp({
+        -- This block is what we are modifying
+        formatting = {
+          fields = { "kind", "abbr", "menu" },
+          format = lspkind.cmp_format({
+            mode = "symbol_text",  -- show only symbol annotations
+            maxwidth = 50,         -- prevent the popup from showing too wide
+            ellipsis_char = '...', -- when popup is wide, use `...`
+            -- Show source of completion
+            menu = ({
+              buffer = "[Buffer]",
+              nvim_lsp = "[LSP]",
+              luasnip = "[LuaSnip]",
+              nvim_lua = "[Lua]",
+              latex_symbols = "[LaTeX]",
+            })
+          })
+        },
         mapping = cmp.mapping.preset.insert({
           ['<C-Space>'] = cmp.mapping.complete(),
           ['<C-e>'] = cmp.mapping.abort(),
@@ -347,6 +344,7 @@ require("lazy").setup({
       lsp.setup()
     end
   },
+
   -- Embeded Terminal
   {
     "akinsho/toggleterm.nvim",
@@ -361,8 +359,50 @@ require("lazy").setup({
   -- Commenting plugin
   {
     'numToStr/Comment.nvim',
-    opts = {},
-    lazy = false,
+    config = function()
+      require('Comment').setup({
+        -- Create a custom mapping
+        mappings = {
+          basic = true, -- enable default mappings (gc, gb)
+          extra = true, -- enable extra mappings (g<, g>, etc.)
+        },
+        -- Add a custom keymap for toggling
+        toggler = {
+          line = '<C-;>',    -- Maps 'gcc' to <C-;>
+          block = '<C-S-;>', -- Example for block comments
+        },
+      })
+    end,
+  },
+
+  -- Neoscroll
+  {
+    "karb94/neoscroll.nvim",
+    config = function()
+      require("neoscroll").setup({
+        -- All these values are optional, change them to your liking
+        easing_function = "quadratic", -- "linear", "quadratic", "cubic", "circular", "gaussian", ...
+        hide_cursor = true,            -- Hide cursor during scrolling
+        stop_eof = true,               -- Stop scrolling when reaching the end or start of a file
+
+        mappings = {
+          -- Default mappings
+          ['<C-u>']               = { 'scroll', { '-vim.wo.scroll', 'true', '250' } },
+          ['<C-d>']               = { 'scroll', { 'vim.wo.scroll', 'true', '250' } },
+          ['<C-b>']               = { 'scroll', { '-vim.api.nvim_win_get_height(0)', 'true', '450' } },
+          ['<C-f>']               = { 'scroll', { 'vim.api.nvim_win_get_height(0)', 'true', '450' } },
+          ['zt']                  = { 'zt', { '100' } },
+          ['zz']                  = { 'zz', { '100' } },
+          ['zb']                  = { 'zb', { '100' } },
+
+          -- Your Custom Mouse Wheel Mappings
+          ['<ScrollWheelUp>']     = { 'scroll', { '-3', 'true', '100' } },
+          ['<ScrollWheelDown>']   = { 'scroll', { '3', 'true', '100' } },
+          ['<S-ScrollWheelUp>']   = { 'scroll', { '-10', 'true', '100', 'horizontal' } },
+          ['<S-ScrollWheelDown>'] = { 'scroll', { '10', 'true', '100', 'horizontal' } },
+        }
+      })
+    end,
   },
 
   -- Indentation guides
@@ -421,8 +461,8 @@ require("lazy").setup({
         ['Find All'] = '<C-S-l>',
         ['Skip Region'] = '<C-x>',   -- Press Ctrl+D, then Ctrl+X to skip the current match and go to the next
         ['Remove Region'] = '<C-b>', -- Press Ctrl+D, then Ctrl+B to remove the last added cursor
-        ['Add Cursor Down'] = '<C-A-Down>',
-        ['Add Cursor Up'] = '<C-A-Up>',
+        ['Add Cursor Down'] = '<C-Down>',
+        ['Add Cursor Up'] = '<C-Up>',
       }
       -- Optional: Use 'i' and 'a' to enter insert mode at the start/end of selections
       vim.g.VM_actions = {
