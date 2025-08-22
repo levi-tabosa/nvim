@@ -456,12 +456,93 @@ require("lazy").setup({
   -- Embeded Terminal
   {
     "akinsho/toggleterm.nvim",
+    version = "*",
     config = function()
       require("toggleterm").setup({
-        open_mapping = [[<c-t>]],
+        open_mapping = false,
         direction = "float",
+        float_opts = {
+          border = 'curved',
+          winblend = 3,
+        },
+        close_on_exit = true,
       })
-    end
+
+      -- This will store our terminals, keyed by the code buffer's number
+      _G.buffer_terminals = {}
+
+      function _G.ToggleBufferTerminal()
+        if vim.bo.buftype == 'terminal' then
+          local current_term_bufnr = vim.api.nvim_get_current_buf()
+          local found_term = nil
+
+          for _, term in pairs(_G.buffer_terminals) do
+            if term and term.bufnr == current_term_bufnr then
+              found_term = term
+              break
+            end
+          end
+
+          if found_term then
+            found_term:toggle()
+          else
+            -- Fallback
+            require('toggleterm').toggle(0)
+          end
+          return
+        end
+
+        local bufnr = vim.api.nvim_get_current_buf()
+
+        -- Prevent creating terminals for special buffers
+        if vim.bo[bufnr].buftype ~= "" then
+          print("ToggleTerm: Cannot create a terminal for this buffer type.")
+          return
+        end
+
+        local term = _G.buffer_terminals[bufnr]
+
+        if term then
+          term:toggle()
+        else
+          local new_term = require("toggleterm.terminal").Terminal:new({
+            -- We use the code buffer's number
+            count = bufnr,
+            hidden = true,
+            direction = "float",
+            on_close = function(t)
+              -- Remove the terminal from table
+              _G.buffer_terminals[t.count] = nil
+            end,
+          })
+
+          new_term:toggle()
+          _G.buffer_terminals[bufnr] = new_term
+        end
+      end
+
+      vim.keymap.set('n', '<c-t>', '<cmd>lua _G.ToggleBufferTerminal()<CR>', {
+        noremap = true,
+        silent = true,
+        desc = "Toggle buffer-local terminal"
+      })
+
+      vim.keymap.set('t', '<c-t>', '<C-\\><C-n><cmd>lua _G.ToggleBufferTerminal()<CR>', {
+        noremap = true,
+        silent = true,
+        desc = "Toggle buffer-local terminal"
+      })
+
+      vim.api.nvim_create_autocmd("BufDelete", {
+        pattern = "*",
+        callback = function(args)
+          local term = _G.buffer_terminals[args.buf]
+          if term and term:is_open() then
+            term:close()
+          end
+        end
+      })
+    end,
   },
 
   -- Commenting plugin
