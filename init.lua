@@ -1,4 +1,3 @@
--- Using nvim-tree
 vim.g.loaded_netrw = 0
 vim.g.loaded_netrwPlugin = 0
 
@@ -18,7 +17,10 @@ vim.opt.wrap = false          -- Disable line wrapping by default
 
 local map = vim.keymap.set
 
--- View Toggles and Scrolling
+-- Leave terminal mode
+map('t', '<C-space>', "<C-\\><C-n><C-w>h", { silent = true })
+
+-- Word wrap
 map("n", "<A-z>", function()
   vim.opt.wrap = not vim.opt.wrap:get()
   if vim.opt.wrap:get() then
@@ -28,10 +30,64 @@ map("n", "<A-z>", function()
   end
 end, { desc = "Toggle word wrap" })
 
--- Leave terminal mode
-map('t', '<C-space>', "<C-\\><C-n><C-w>h", { silent = true })
+-- Scroll vertically with Mouse Wheel
+map({ "n", "v" }, "<ScrollWheelDown>", "8<C-e>", { desc = "Scroll down" })
+map({ "n", "v" }, "<ScrollWheelUp>", "8<C-y>", { desc = "Scroll up" })
 
--- Navigation
+-- Scroll horizontally with Shift + Mouse Wheel
+map({ "n", "v" }, "<S-ScrollWheelDown>", "12zl", { desc = "Scroll right" })
+map({ "n", "v" }, "<S-ScrollWheelUp>", "12zh", { desc = "Scroll left" })
+
+-- File operations
+map("n", "<C-s>", ":w<CR>", { desc = "Save file" })
+map("i", "<C-s>", "<Esc>:w<CR>a", { desc = "Save file" })
+
+-- Editing
+map("i", "<C-z>", "<Esc>ua", { desc = "Undo" })
+map("i", "<C-y>", "<Esc><C-r>a", { desc = "Redo" })
+map("n", "<C-z>", "u", { desc = "Undo" })
+map("n", "<C-y>", "<C-r>", { desc = "Redo" })
+map("n", "<C-c>", '"+yy', { desc = "Copy line to clipboard" })
+map("x", "<C-c>", '"+y', { desc = "Copy selection to clipboard" })
+map("n", "<C-x>", '"+dd', { desc = "Cut line to clipboard" })
+map("x", "<C-x>", '"+d', { desc = "Cut line to clipboard" })
+map("n", "<C-v>", '"+p', { desc = "Paste from clipboard" })
+map("x", "<C-v>", '"+p', { desc = "Paste from clipboard" })
+map("n", "<C-f>", "/", { desc = "Search" })
+map("v", "<C-f>", "/", { desc = "Search" })
+map("n", "<C-h>", ":%s/", { desc = "Replace" })
+map("n", "<C-S-k>", "dd", { desc = "Delete current line" })
+map("i", "<C-S-k>", "<Esc>ddi", { desc = "Delete current line (insert)" })
+map("v", "<C-S-k>", "d", { desc = "Delete selection" })
+map("v", "<A-j>", ":m '>+1<CR>gv=gv", { desc = "Move selection down" })
+map("v", "<A-k>", ":m '<-2<CR>gv=gv", { desc = "Move selection up" })
+map("n", "<A-k>", ":m .-2<CR>==", { desc = "Move line up" })
+map("n", "<A-j>", ":m .+1<CR>==", { desc = "Move line down" })
+map("i", "<A-j>", "<Esc>:m .+1<CR>==gi", { desc = "Move line down (insert)" })
+map("i", "<A-k>", "<Esc>:m .-2<CR>==gi", { desc = "Move line up (insert)" })
+
+-- Start selection in Normal Mode
+map('n', '<S-Left>', 'v<Left>')
+map('n', '<S-Right>', 'v<Right>')
+map('n', '<S-Up>', 'v<Up>')
+map('n', '<S-Down>', 'v<Down>')
+map('n', '<C-S-Left>', 'v<C-Left>')
+map('n', '<C-S-Right>', 'v<C-Right>')
+
+-- Extend selection in Visual Mode
+map('v', '<S-Up>', '<Up>')
+map('v', '<S-Down>', '<Down>')
+map('v', '<C-S-Left>', '<C-Left>')
+map('v', '<C-S-Right>', '<C-Right>')
+
+-- Start selection from Insert Mode
+map('i', '<S-Left>', '<Esc>v<Left>')
+map('i', '<S-Right>', '<Esc>v<Right>')
+map('i', '<S-Up>', '<Esc>v<Up>')
+map('i', '<S-Down>', '<Esc>v<Down>')
+map('i', '<C-S-Left>', '<Esc>v<C-Left>')
+map('i', '<C-S-Right>', '<Esc>v<C-Right>')
+
 map("n", "<C-a>", "ggVG", { desc = "Select all" })
 map("n", "<leader>pp", function()
   vim.opt.paste = not vim.opt.paste:get()
@@ -42,47 +98,20 @@ map("n", "<leader>pp", function()
   end
 end, { desc = "Toggle paste mode" })
 
-map("n", "<leader>ww", function()
-  vim.opt.wrap = not vim.opt.wrap:get()
-  if vim.opt.wrap:get() then
-    vim.notify("Word wrap enabled", vim.log.levels.INFO, { title = "View" })
-  else
-    vim.notify("Word wrap disabled", vim.log.levels.INFO, { title = "View" })
-  end
-end, { desc = "Toggle word wrap" })
+-- Buffer management
+map("n", "<S-PageUp>", ":bprevious<CR>", { desc = "Previous buffer" })
+map("n", "<S-PageDown>", ":bnext<CR>", { desc = "Next buffer" })
+map("n", "<S-t>", ":enew<CR>", { desc = "New buffer" })
+-- Delete buffer is with file explorer api handle further down the file
 
--- Scroll vertically with Mouse Wheel
-map({ "n", "v" }, "<ScrollWheelDown>", "4<C-e>", { desc = "Scroll down" })
-map({ "n", "v" }, "<ScrollWheelUp>", "4<C-y>", { desc = "Scroll up" })
-
--- Scroll horizontally with Shift + Mouse Wheel
-map({ "n", "v" }, "<S-ScrollWheelDown>", "10zl", { desc = "Scroll right" })
-map({ "n", "v" }, "<S-ScrollWheelUp>", "10zh", { desc = "Scroll left" })
--- File operations
-map("n", "<C-s>", ":w<CR>", { desc = "Save file" })
-map("i", "<C-s>", "<Esc>:w<CR>a", { desc = "Save file" })
--- Changed <C-w> to close buffer instead of window/quit
-map("n", "<C-w>", ":bdelete<CR>", { desc = "Close buffer (file tab)" })
-
--- Editing
-map("i", "<C-z>", "<Esc>ua", { desc = "Undo" })
-map("i", "<C-y>", "<Esc><C-r>a", { desc = "Redo" })
-map("n", "<C-z>", "u", { desc = "Undo" })
-map("n", "<C-y>", "<C-r>", { desc = "Redo" })
-map("v", "<C-c>", '"+y', { desc = "Copy to clipboard" })
-map("n", "<C-c>", '"+yy', { desc = "Copy line to clipboard" })
-map("v", "<C-x>", '"+d', { desc = "Cut to clipboard" })
-map("n", "<C-v>", '"+p', { desc = "Paste from clipboard" })
-
--- Search/Replace
-map("n", "<C-f>", "/", { desc = "Search" })
-map("v", "<C-f>", "/", { desc = "Search" })
-map("n", "<C-h>", ":%s/", { desc = "Replace" })
+map("n", "<C-PageUp>", ":-tabnext<CR>", { desc = "Previous tab" })
+map("n", "<C-PageDown>", ":+tabnext<CR>", { desc = "Next tab" })
+map("n", "<A-t>", ":tabnew<CR>", { desc = "New tab" })
+map("n", "<A-q>", ":tabclose<CR>", { desc = "Close tab" })
 
 -- Window management
 map("n", "<C-=>", "<C-w>=", { desc = "Equalize window sizes" })
-map("n", "<A-w>", ":vnew<CR>", { desc = "New vertical window" })
-
+map("n", "<A-w>", ":wnew<CR>", { desc = "New window" })
 -- Move between splits with Alt + Arrow keys
 map("n", "<A-Left>", "<C-w>h", { desc = "Focus left window" })
 map("n", "<A-Right>", "<C-w>l", { desc = "Focus right window" })
@@ -95,48 +124,31 @@ map("n", "<A-S-Right>", "<C-w>>", { desc = "Resize split right" })
 map("n", "<A-S-Up>", "<C-w>+", { desc = "Resize split up" })
 map("n", "<A-S-Down>", "<C-w>-", { desc = "Resize split down" })
 
--- Move between tabs with Ctrl + PageUp/PageDown
-map("n", "<C-PageUp>", ":-tabnext<CR>", { desc = "Previous tab" })
-map("n", "<C-PageDown>", ":+tabnext<CR>", { desc = "Next tab" })
+-- Theme switcher
+local themes = { "dracula", "vscode", "tokyonight", "gruvbox", "catppuccin", "carbonfox", "onedark", "default" }
+local current_theme = 1
 
--- Alternative: Ctrl+Shift+[ / Ctrl+Shift+]
-map("n", "<C-S-[>", ":-tabnext<CR>", { desc = "Previous tab" })
-map("n", "<C-S-]>", ":+tabnext<CR>", { desc = "Next tab" })
+function _G.CycleTheme()
+  current_theme = current_theme + 1
+  if current_theme > #themes then current_theme = 1 end
+  vim.cmd("colorscheme " .. themes[current_theme])
+  vim.notify("Theme: " .. themes[current_theme], vim.log.levels.INFO, { title = "Theme Switcher" })
+end
 
--- Create and close tabs
-map("n", "<A-t>", ":tabnew<CR>", { desc = "New tab" })
-map("n", "<A-q>", ":tabclose<CR>", { desc = "Close tab" })
+-- Reload a Lua module
+function _G.ReloadConfig()
+  for name, _ in pairs(package.loaded) do
+    if name:match("^user") then -- or your config namespace
+      package.loaded[name] = nil
+    end
+  end
+  dofile(vim.fn.stdpath("config") .. "/init.lua")
+  vim.notify("Config reloaded!", vim.log.levels.INFO)
+end
 
--- Start selection in Normal Mode
-map('n', '<S-Left>', 'v<Left>')
-map('n', '<S-Right>', 'v<Right>')
-map('n', '<S-Up>', 'v<Up>')
-map('n', '<S-Down>', 'v<Down>')
-map('n', '<C-S-Left>', 'v<C-Left>')
-map('n', '<C-S-Right>', 'v<C-Right>')
-
--- Extend selection in Visual Mode
-map('v', '<S-Left>', '<Left>')
-map('v', '<S-Right>', '<Right>')
--- map('v', '<S-Up>', '<Up>')
--- map('v', '<S-Down>', '<Down>')
-map('v', '<C-S-Left>', '<C-Left>')
-map('v', '<C-S-Right>', '<C-Right>')
-
--- Start selection from Insert Mode
-map('i', '<S-Left>', '<Esc>v<Left>')
-map('i', '<S-Right>', '<Esc>v<Right>')
-map('i', '<S-Up>', '<Esc>v<Up>')
-map('i', '<S-Down>', '<Esc>v<Down>')
-map('i', '<C-S-Left>', '<Esc>v<C-Left>')
-map('i', '<C-S-Right>', '<Esc>v<C-Right>')
-
--- Note: The Vim motions for word-wise movement are 'b' (back) and 'w' (forward).
--- The <C-Left> and <C-Right> keycodes might not work in all terminals.
--- If you have issues, you can use the more portable vim motions like this:
--- map({'n', 'v', 'i'}, '<C-S-Left>', '<Esc>vb') -- Start/extend selection one word back
--- map({'n', 'v', 'i'}, '<C-S-Right>', '<Esc>vw') -- Start/extend selection one word forward
--- You would need to separate them by mode as done above for the best experience.
+-- Keymap to reload config
+map("n", "<leader>rr", ":lua ReloadConfig()<CR>", { desc = "Reload config" })
+map("n", "<C-k>t", ":lua CycleTheme()<CR>", { desc = "Cycle themes" })
 
 -- Install package manager (lazy.nvim)
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -153,16 +165,73 @@ vim.opt.rtp:prepend(lazypath)
 
 -- Plugin configuration
 require("lazy").setup({
-  -- Dracula theme
+  -- Dracula
   {
     "Mofiqul/dracula.nvim",
-    priority = 1000, -- Make sure theme is loaded first
+    lazy = true,
+  },
+
+  {
+    -- VSCode dark+ theme
+    "Mofiqul/vscode.nvim",
     config = function()
-      vim.cmd.colorscheme("dracula")
+      vim.o.background = "dark"
+      require("vscode").setup({
+        transparent = false,
+        italic_comments = true,
+        disable_nvimtree_bg = true,
+      })
     end
   },
 
-  -- File explorer
+  -- Tokyonight (has "storm", "night", "moon" variants, all dark)
+  {
+    "folke/tokyonight.nvim",
+    config = function()
+      vim.o.background = "dark"
+    end
+  },
+
+  -- Catppuccin (choose "mocha" for dark high contrast)
+  {
+    "catppuccin/nvim",
+    name = "catppuccin",
+    config = function()
+      require("catppuccin").setup({
+        flavour = "mocha", -- latte, frappe, macchiato, mocha
+        transparent_background = false,
+      })
+    end
+  },
+
+  -- Gruvbox high contrast dark
+  {
+    "ellisonleao/gruvbox.nvim",
+    config = function()
+      vim.o.background = "dark"
+      require("gruvbox").setup({
+        contrast = "hard", -- can be "hard", "soft" or ""
+      })
+    end
+  },
+
+  -- Nightfox theme pack (includes "carbonfox" = high contrast dark)
+  {
+    "EdenEast/nightfox.nvim",
+    config = function()
+      vim.o.background = "dark"
+    end
+  },
+
+  -- OneDark Pro (Atom/VSCode inspired)
+  {
+    "navarasu/onedark.nvim",
+    config = function()
+      require("onedark").setup({
+        style = "darker" -- "dark", "darker", "cool", "deep", "warm", "warmer"
+      })
+    end
+  }, -- File explorer
   {
     "nvim-tree/nvim-tree.lua",
     dependencies = { "nvim-tree/nvim-web-devicons" },
@@ -201,6 +270,39 @@ require("lazy").setup({
 
       map("n", "<C-b>", api.tree.toggle, { desc = "Toggle file explorer" })
       map("n", "<A-f>", ":NvimTreeFindFile<CR>", { desc = "Focus file explorer" })
+      map("n", "<S-w>", function()
+        local buf_ft = vim.bo.filetype
+
+        -- If in nvim-tree, just close it
+        if buf_ft == "NvimTree" then
+          api.tree.close()
+          return
+        end
+
+        -- If buffer is modified, prompt user
+        if vim.bo.modified then
+          local choice = vim.fn.confirm(
+            "Buffer has unsaved changes. Save before closing?",
+            "&Yes\n&No\n&Cancel",
+            1
+          )
+
+          if choice == 1 then
+            vim.cmd("write") -- Save
+          elseif choice == 3 then
+            return           -- Cancel
+          end
+          -- choice == 2 means "No" → just close without saving
+        end
+
+        -- Close the current buffer
+        vim.cmd("bdelete")
+
+        -- If focus ends up on nvim-tree, close it too
+        if vim.bo.filetype == "NvimTree" then
+          api.tree.close()
+        end
+      end, { desc = "Close buffer with save prompt and auto-close nvim-tree" })
     end
   },
 
@@ -227,7 +329,7 @@ require("lazy").setup({
     config = function()
       require("lualine").setup({
         options = {
-          theme = "dracula-nvim", -- Match our theme
+          theme = "dracula", -- Match our theme
           icons_enabled = true,
           component_separators = '|',
           section_separators = '',
@@ -351,7 +453,7 @@ require("lazy").setup({
     config = function()
       require("toggleterm").setup({
         open_mapping = [[<c-t>]],
-        direction = "float"
+        direction = "float",
       })
     end
   },
@@ -369,38 +471,8 @@ require("lazy").setup({
         -- Add a custom keymap for toggling
         toggler = {
           line = '<C-;>',    -- Maps 'gcc' to <C-;>
-          block = '<C-S-;>', -- Example for block comments
+          block = '<C-A-;>', -- Example for block comments
         },
-      })
-    end,
-  },
-
-  -- Neoscroll
-  {
-    "karb94/neoscroll.nvim",
-    config = function()
-      require("neoscroll").setup({
-        -- All these values are optional, change them to your liking
-        easing_function = "quadratic", -- "linear", "quadratic", "cubic", "circular", "gaussian", ...
-        hide_cursor = true,            -- Hide cursor during scrolling
-        stop_eof = true,               -- Stop scrolling when reaching the end or start of a file
-
-        mappings = {
-          -- Default mappings
-          ['<C-u>']               = { 'scroll', { '-vim.wo.scroll', 'true', '250' } },
-          ['<C-d>']               = { 'scroll', { 'vim.wo.scroll', 'true', '250' } },
-          ['<C-b>']               = { 'scroll', { '-vim.api.nvim_win_get_height(0)', 'true', '450' } },
-          ['<C-f>']               = { 'scroll', { 'vim.api.nvim_win_get_height(0)', 'true', '450' } },
-          ['zt']                  = { 'zt', { '100' } },
-          ['zz']                  = { 'zz', { '100' } },
-          ['zb']                  = { 'zb', { '100' } },
-
-          -- Your Custom Mouse Wheel Mappings
-          ['<ScrollWheelUp>']     = { 'scroll', { '-3', 'true', '100' } },
-          ['<ScrollWheelDown>']   = { 'scroll', { '3', 'true', '100' } },
-          ['<S-ScrollWheelUp>']   = { 'scroll', { '-10', 'true', '100', 'horizontal' } },
-          ['<S-ScrollWheelDown>'] = { 'scroll', { '10', 'true', '100', 'horizontal' } },
-        }
       })
     end,
   },
@@ -456,13 +528,13 @@ require("lazy").setup({
     init = function()
       -- Set the keymaps before the plugin loads
       vim.g.VM_maps = {
-        ['Find Next'] = '<C-d>',
-        ['Find Prev'] = '<C-a>',
-        ['Find All'] = '<C-S-l>',
-        ['Skip Region'] = '<C-x>',   -- Press Ctrl+D, then Ctrl+X to skip the current match and go to the next
-        ['Remove Region'] = '<C-b>', -- Press Ctrl+D, then Ctrl+B to remove the last added cursor
+        ['Find Next']       = '<C-d>',
+        ['Find Prev']       = '<C-D>',
+        ['Find All']        = '<C-L>',
+        ['Skip Region']     = '<A-s>',
+        ['Remove Region']   = '<A-r>',
         ['Add Cursor Down'] = '<C-Down>',
-        ['Add Cursor Up'] = '<C-Up>',
+        ['Add Cursor Up']   = '<C-Up>',
       }
       -- Optional: Use 'i' and 'a' to enter insert mode at the start/end of selections
       vim.g.VM_actions = {
