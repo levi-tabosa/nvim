@@ -17,6 +17,9 @@ vim.opt.wrap = false          -- Disable line wrapping by default
 
 local map = vim.keymap.set
 
+-- Show messages
+map("n", "<leader>mm", ":messages<CR>", { desc = "Show messages" })
+
 -- Leave terminal mode
 map('t', '<C-space>', "<C-\\><C-n><C-w>h", { silent = true })
 
@@ -51,10 +54,9 @@ map("n", "<C-c>", '"+yy', { desc = "Copy line to clipboard" })
 map("x", "<C-c>", '"+y', { desc = "Copy selection to clipboard" })
 map("n", "<C-x>", '"+dd', { desc = "Cut line to clipboard" })
 map("x", "<C-x>", '"+d', { desc = "Cut line to clipboard" })
-map("n", "<C-v>", '"+p', { desc = "Paste from clipboard" })
-map("x", "<C-v>", '"+p', { desc = "Paste from clipboard" })
-map("n", "<C-f>", "/", { desc = "Search" })
-map("v", "<C-f>", "/", { desc = "Search" })
+map({ "x", "n" }, "<C-v>", '"+p', { desc = "Paste from clipboard" })
+map("i", "<C-v>", '<Esc>"+p', { desc = "Paste from clipboard" })
+map({ "n", "v" }, "<C-f>", "/", { desc = "Search" })
 map("n", "<C-h>", ":%s/", { desc = "Replace" })
 map("n", "<C-S-k>", "dd", { desc = "Delete current line" })
 map("i", "<C-S-k>", "<Esc>ddi", { desc = "Delete current line (insert)" })
@@ -102,8 +104,8 @@ end, { desc = "Toggle paste mode" })
 map("n", "<S-PageUp>", ":bprevious<CR>", { desc = "Previous buffer" })
 map("n", "<S-PageDown>", ":bnext<CR>", { desc = "Next buffer" })
 map("n", "<S-t>", ":enew<CR>", { desc = "New buffer" })
--- Delete buffer is with file explorer api handle further down the file
 
+-- Delete buffer is with file explorer api handle further down the file
 map("n", "<C-PageUp>", ":-tabnext<CR>", { desc = "Previous tab" })
 map("n", "<C-PageDown>", ":+tabnext<CR>", { desc = "Next tab" })
 map("n", "<A-t>", ":tabnew<CR>", { desc = "New tab" })
@@ -171,8 +173,8 @@ require("lazy").setup({
     lazy = true,
   },
 
+  -- VSCode dark+ theme
   {
-    -- VSCode dark+ theme
     "Mofiqul/vscode.nvim",
     config = function()
       vim.o.background = "dark"
@@ -231,7 +233,9 @@ require("lazy").setup({
         style = "darker" -- "dark", "darker", "cool", "deep", "warm", "warmer"
       })
     end
-  }, -- File explorer
+  },
+
+  -- File explorer
   {
     "nvim-tree/nvim-tree.lua",
     dependencies = { "nvim-tree/nvim-web-devicons" },
@@ -262,7 +266,7 @@ require("lazy").setup({
         respect_buf_cwd = true,
       })
 
-      vim.keymap.set("n", "<A-b>", function()
+      map("n", "<A-b>", function()
         if api.tree.is_visible() then
           if api.tree.is_tree_buf() then
             vim.cmd("wincmd p")
@@ -313,7 +317,9 @@ require("lazy").setup({
   },
 
   -- Web Dev icons
-  { "nvim-tree/nvim-web-devicons", lazy = true, priority = 100 },
+  {
+    "nvim-tree/nvim-web-devicons", lazy = true, priority = 100
+  },
 
   -- Fuzzy finder
   {
@@ -325,6 +331,10 @@ require("lazy").setup({
       map("n", "<leader>f", builtin.live_grep, { desc = "Search in files (Grep)" })
       map("n", "<leader>b", builtin.buffers, { desc = "Find open buffers (files)" })
       map("n", "<leader>h", builtin.help_tags, { desc = "Find help tags" })
+      map("n", "<leader>dd", builtin.diagnostics, { desc = "Show all diagnostics" })
+      map("n", "<leader>db", function()
+        builtin.diagnostics({ bufnr = 0 })
+      end, { desc = "Show buffer diagnostics" })
     end
   },
 
@@ -335,7 +345,6 @@ require("lazy").setup({
     config = function()
       require("lualine").setup({
         options = {
-          theme = "dracula", -- Match our theme
           icons_enabled = true,
           component_separators = '|',
           section_separators = '',
@@ -365,7 +374,9 @@ require("lazy").setup({
   },
 
   -- git stuff
-  { "tpope/vim-fugitive" },
+  {
+    "tpope/vim-fugitive"
+  },
   {
     "lewis6991/gitsigns.nvim",
     config = function()
@@ -374,6 +385,7 @@ require("lazy").setup({
       })
     end
   },
+
   -- LSP
   {
     "VonHeikemen/lsp-zero.nvim",
@@ -459,7 +471,7 @@ require("lazy").setup({
     end
   },
 
-  -- Embeded Terminal
+  -- Embedded Terminal
   {
     "akinsho/toggleterm.nvim",
     version = "*",
@@ -471,82 +483,65 @@ require("lazy").setup({
           border = 'curved',
           winblend = 3,
         },
-        close_on_exit = true,
+        close_on_exit = true, -- keep if you want the shell process to cause a real close on exit
+        shade_terminals = false,
       })
 
-      -- This will store our terminals, keyed by the code buffer's number
-      _G.buffer_terminals = {}
+      -- Store terminals keyed by CWD
+      _G.cwd_terminals = {}
 
-      function _G.ToggleBufferTerminal()
+      function _G.ToggleCwdTerminal()
+        -- If we're already in a terminal buffer, try to toggle that terminal instance
         if vim.bo.buftype == 'terminal' then
           local current_term_bufnr = vim.api.nvim_get_current_buf()
-          local found_term = nil
-
-          for _, term in pairs(_G.buffer_terminals) do
+          for _, term in pairs(_G.cwd_terminals) do
             if term and term.bufnr == current_term_bufnr then
-              found_term = term
-              break
+              term:toggle()
+              return
             end
           end
-
-          if found_term then
-            found_term:toggle()
-          else
-            -- Fallback
-            require('toggleterm').toggle(0)
-          end
+          -- fallback: toggle the global toggleterm default terminal
+          require('toggleterm').toggle(0)
           return
         end
 
-        local bufnr = vim.api.nvim_get_current_buf()
-
-        -- Prevent creating terminals for special buffers
-        if vim.bo[bufnr].buftype ~= "" then
+        -- refuse for edge case buffer types
+        if vim.bo.buftype ~= "" then
           print("ToggleTerm: Cannot create a terminal for this buffer type.")
           return
         end
 
-        local term = _G.buffer_terminals[bufnr]
+        local cwd = vim.fn.getcwd()
+        local term = _G.cwd_terminals[cwd]
 
-        if term then
+        -- reuse only if the stored Terminal has a valid buffer number
+        if term and term.bufnr and vim.api.nvim_buf_is_valid(term.bufnr) then
           term:toggle()
-        else
-          local new_term = require("toggleterm.terminal").Terminal:new({
-            -- We use the code buffer's number
-            count = bufnr,
-            hidden = true,
-            direction = "float",
-            on_close = function(t)
-              -- Remove the terminal from table
-              _G.buffer_terminals[t.count] = nil
-            end,
-          })
-
-          new_term:toggle()
-          _G.buffer_terminals[bufnr] = new_term
+          return
         end
+
+        -- create a new Terminal for this cwd and keep it in the map
+        local Terminal = require("toggleterm.terminal").Terminal
+        local new_term = Terminal:new({
+          cwd = cwd,
+          hidden = true, -- preserve buffer contents when float closes
+          direction = "float",
+        })
+
+        _G.cwd_terminals[cwd] = new_term
+        new_term:toggle()
       end
 
-      vim.keymap.set('n', '<c-t>', '<cmd>lua _G.ToggleBufferTerminal()<CR>', {
+      map('n', '<c-t>', '<cmd>lua _G.ToggleCwdTerminal()<CR>', {
         noremap = true,
         silent = true,
-        desc = "Toggle buffer-local terminal"
+        desc = "Toggle CWD-local terminal"
       })
 
-      vim.keymap.set('t', '<c-t>', '<C-\\><C-n><cmd>lua _G.ToggleBufferTerminal()<CR>', {
+      map('t', '<c-t>', '<C-\\><C-n><cmd>lua _G.ToggleCwdTerminal()<CR>', {
         noremap = true,
         silent = true,
-        desc = "Toggle buffer-local terminal"
-      })
-
-      vim.api.nvim_create_autocmd("BufDelete", {
-        pattern = "*",
-        callback = function(args)
-          local term = _G.buffer_terminals[args.buf]
-          if term and term:is_open() then
-            term:close()
-          end
-        end
+        desc = "Toggle CWD-local terminal"
       })
     end,
   },
@@ -558,15 +553,32 @@ require("lazy").setup({
       require('Comment').setup({
         -- Create a custom mapping
         mappings = {
-          basic = true, -- enable default mappings (gc, gb)
-          extra = true, -- enable extra mappings (g<, g>, etc.)
-        },
-        -- Add a custom keymap for toggling
-        toggler = {
-          line = '<C-;>',    -- Maps 'gcc' to <C-;>
-          block = '<C-A-;>', -- Example for block comments
+          basic = false, -- enable default mappings (gc, gb)
+          extra = false, -- enable extra mappings (g<, g>, etc.)
         },
       })
+
+      local api = require('Comment.api')
+
+      vim.keymap.set('n', '<leader>cc', function()
+        api.toggle.linewise.current()
+      end, { desc = 'Toggle comment (linewise)' })
+
+      vim.keymap.set('x', '<leader>cc', function()
+        local esc = vim.api.nvim_replace_termcodes('<ESC>', true, false, true)
+        vim.api.nvim_feedkeys(esc, 'nx', false)
+        api.toggle.linewise(vim.fn.visualmode())
+      end, { desc = 'Toggle comment (visual)' })
+
+      vim.keymap.set('n', '<leader>bb', function()
+        api.toggle.blockwise.current()
+      end, { desc = 'Toggle comment (block)' })
+
+      vim.keymap.set('x', '<leader>bb', function()
+        local esc = vim.api.nvim_replace_termcodes('<ESC>', true, false, true)
+        vim.api.nvim_feedkeys(esc, 'nx', false)
+        api.toggle.blockwise(vim.fn.visualmode())
+      end, { desc = 'Toggle comment (block visual)' })
     end,
   },
 
@@ -598,6 +610,8 @@ require("lazy").setup({
       }
     }
   },
+
+  -- Lua snippets
   {
     "L3MON4D3/LuaSnip",
     dependencies = {
@@ -605,6 +619,7 @@ require("lazy").setup({
       "saadparwaiz1/cmp_luasnip",
     },
   },
+
   -- Project management
   {
     "ahmedkhalf/project.nvim",
@@ -614,6 +629,7 @@ require("lazy").setup({
       map("n", "<leader>p", "<cmd>Telescope projects<CR>", { desc = "Find Projects" })
     end
   },
+
   -- Multi-Cursor Editing
   {
     'mg979/vim-visual-multi',
@@ -628,8 +644,9 @@ require("lazy").setup({
         ['Remove Region']   = '<A-r>',
         ['Add Cursor Down'] = '<C-Down>',
         ['Add Cursor Up']   = '<C-Up>',
+        ['Comment Line']    = '<leader>cc',
+        ['Comment Block']   = '<leader>bb',
       }
-      -- Optional: Use 'i' and 'a' to enter insert mode at the start/end of selections
       vim.g.VM_actions = {
         ['change'] = 'c',
         ['insert'] = 'i',
@@ -644,7 +661,7 @@ local format_on_save_group = vim.api.nvim_create_augroup("FormatOnSave", { clear
 vim.api.nvim_create_autocmd("BufWritePre", {
   pattern = "*",
   callback = function()
-    vim.lsp.buf.format({ async = true })
+    vim.lsp.buf.format({ async = false })
   end,
   group = format_on_save_group,
 })
