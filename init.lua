@@ -374,7 +374,6 @@ require("lazy").setup({
       })
     end
   },
-
   -- LSP
   {
     "VonHeikemen/lsp-zero.nvim",
@@ -393,32 +392,39 @@ require("lazy").setup({
 
       lsp.on_attach(function(client, bufnr)
         lsp.default_keymaps({ buffer = bufnr })
-        map('n', 'K', vim.lsp.buf.hover, { buffer = bufnr, desc = "Hover Documentation" })
-        map('n', 'gd', vim.lsp.buf.definition, { buffer = bufnr, desc = "Go to Definition" })
-        map('n', '<leader>ca', vim.lsp.buf.code_action, { buffer = bufnr, desc = "Code Action" })
-        map('n', '<leader>rn', vim.lsp.buf.rename, { buffer = bufnr, desc = "Rename" })
       end)
 
       require('mason-lspconfig').setup({
         ensure_installed = {
           'lua_ls', 'pyright', 'ts_ls', 'jdtls', 'rust_analyzer', 'clangd', 'zls',
         },
-        handlers = { lsp.default_setup }
+        handlers = {
+          lsp.default_setup,
+
+          -- It will be called *instead* of the default one.
+          zls = function()
+            local lspconfig = require('lspconfig')
+            lspconfig.zls.setup({
+              settings = {
+                zls = {
+                  zig_lib_path = "/snap/zig/14937/lib",
+                }
+              }
+            })
+          end,
+        }
       })
 
-      -- Configure cmp
       local cmp = require('cmp')
       local lspkind = require('lspkind')
 
       lsp.setup_nvim_cmp({
-        -- This block is what we are modifying
         formatting = {
           fields = { "kind", "abbr", "menu" },
           format = lspkind.cmp_format({
-            mode = "symbol_text",  -- show only symbol annotations
-            maxwidth = 50,         -- prevent the popup from showing too wide
-            ellipsis_char = '...', -- when popup is wide, use `...`
-            -- Show source of completion
+            mode = "symbol_text",
+            maxwidth = 50,
+            ellipsis_char = '...',
             menu = ({
               buffer = "[Buffer]",
               nvim_lsp = "[LSP]",
