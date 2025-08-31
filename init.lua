@@ -33,10 +33,6 @@ map("n", "<A-z>", function()
   end
 end, { desc = "Toggle word wrap" })
 
--- Scroll vertically with Mouse Wheel
-map({ "n", "v" }, "<ScrollWheelDown>", "8<C-e>", { desc = "Scroll down" })
-map({ "n", "v" }, "<ScrollWheelUp>", "8<C-y>", { desc = "Scroll up" })
-
 -- Scroll horizontally with Shift + Mouse Wheel
 map({ "n", "v" }, "<S-ScrollWheelDown>", "12zl", { desc = "Scroll right" })
 map({ "n", "v" }, "<S-ScrollWheelUp>", "12zh", { desc = "Scroll left" })
@@ -75,6 +71,7 @@ map('n', '<S-Up>', 'v<Up>')
 map('n', '<S-Down>', 'v<Down>')
 map('n', '<C-S-Left>', 'v<C-Left>')
 map('n', '<C-S-Right>', 'v<C-Right>')
+map('n', '<S-End>', 'v<End>')
 
 -- Extend selection in Visual Mode
 map('v', '<S-Up>', '<Up>')
@@ -373,7 +370,7 @@ require("lazy").setup({
     config = function() require("nvim-autopairs").setup() end
   },
 
-  -- git stuff
+  -- Git stuff
   {
     "tpope/vim-fugitive"
   },
@@ -642,8 +639,8 @@ require("lazy").setup({
         ['Find All']        = '<C-L>',
         ['Skip Region']     = '<A-s>',
         ['Remove Region']   = '<A-r>',
-        ['Add Cursor Down'] = '<C-Down>',
-        ['Add Cursor Up']   = '<C-Up>',
+        ['Add Cursor Down'] = '<C-S-Down>',
+        ['Add Cursor Up']   = '<C-S-Up>',
         ['Comment Line']    = '<leader>cc',
         ['Comment Block']   = '<leader>bb',
       }
@@ -653,6 +650,36 @@ require("lazy").setup({
         ['append'] = 'a',
       }
     end,
+  },
+
+  -- Neoscroll
+  {
+    "karb94/neoscroll.nvim",
+    config = function()
+      require('neoscroll').setup({
+        easing_function = "quadratic",
+        hide_cursor = true,
+        stop_eof = true,
+        respect_scrolloff = true,
+        cursor_scrolls_alone = true,
+        mappings = {} -- Disable default <C-u>, <C-d>, etc.
+      })
+
+      local neoscroll          = require('neoscroll')
+      local t                  = {}
+
+      -- Space + Arrow keys for smooth scroll
+      t['<C-Up>']              = { 'scroll', { '-vim.wo.scroll', 'true', '300' } }
+      t['<C-Down>']            = { 'scroll', { 'vim.wo.scroll', 'true', '300' } }
+
+      -- Smooth mouse vertical scroll
+      t['<ScrollWheelUp>']     = { 'scroll', { '-8', 'true', '80' } }
+      t['<ScrollWheelDown>']   = { 'scroll', { '8', 'true', '80' } }
+      t['<A-ScrollWheelUp>']   = { 'scroll', { '-17', 'true', '80' } }
+      t['<A-ScrollWheelDown>'] = { 'scroll', { '17', 'true', '80' } }
+
+      require('neoscroll.config').set_mappings(t)
+    end
   },
 })
 
