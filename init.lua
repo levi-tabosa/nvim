@@ -2,22 +2,25 @@ vim.g.loaded_netrw = 0
 vim.g.loaded_netrwPlugin = 0
 
 -- Basic settings
-vim.opt.number = true         -- Line numbers
-vim.opt.relativenumber = true -- Relative line numbers
-vim.opt.tabstop = 2           -- 2 spaces per tab
-vim.opt.shiftwidth = 2        -- 2 spaces for indentation
-vim.opt.scrolloff = 8         -- Keep 8 lines of context above and below the cursor
-vim.opt.sidescrolloff = 5     -- Keep 5 columns of context to the left and right
-vim.opt.expandtab = true      -- Use spaces instead of tabs
-vim.opt.mouse = "a"           -- Enable mouse support
-vim.opt.termguicolors = true  -- Enable true 24-bit colors
-vim.opt.cursorline = true     -- Highlight current line
-vim.opt.signcolumn = "yes"    -- Always show sign column
-vim.opt.wrap = false          -- Disable line wrapping by default
+vim.opt.number = true
+vim.opt.relativenumber = true
+vim.opt.tabstop = 2
+vim.opt.shiftwidth = 2
+vim.opt.scrolloff = 8
+vim.opt.sidescrolloff = 5
+vim.opt.expandtab = true
+vim.opt.mouse = "a"
+vim.opt.termguicolors = true
+vim.opt.cursorline = true
+vim.opt.signcolumn = "yes"
+vim.opt.wrap = false
 
 local map = vim.keymap.set
 
--- Show messages
+-- Mapeamento para buscar texto selecionado com Ctrl+f
+map("v", "<C-f>", "y/<C-R>=escape(@\", '/\\')<CR><CR>", { desc = "Search selected text" })
+
+-- Mostra mensagens
 map("n", "<leader>mm", ":messages<CR>", { desc = "Show messages" })
 
 -- Leave terminal mode
@@ -52,17 +55,33 @@ map("n", "<C-x>", '"+dd', { desc = "Cut line to clipboard" })
 map("x", "<C-x>", '"+d', { desc = "Cut line to clipboard" })
 map({ "x", "n" }, "<C-v>", '"+p', { desc = "Paste from clipboard" })
 map("i", "<C-v>", '<Esc>"+p', { desc = "Paste from clipboard" })
-map({ "n", "v" }, "<C-f>", "/", { desc = "Search" })
+map("n", "<C-f>", "/", { desc = "Search" })
 map("n", "<C-h>", ":%s/", { desc = "Replace" })
 map("n", "<C-S-k>", "dd", { desc = "Delete current line" })
 map("i", "<C-S-k>", "<Esc>ddi", { desc = "Delete current line (insert)" })
 map("v", "<C-S-k>", "d", { desc = "Delete selection" })
 map("v", "<A-j>", ":m '>+1<CR>gv=gv", { desc = "Move selection down" })
 map("v", "<A-k>", ":m '<-2<CR>gv=gv", { desc = "Move selection up" })
-map("n", "<A-k>", ":m .-2<CR>==", { desc = "Move line up" })
-map("n", "<A-j>", ":m .+1<CR>==", { desc = "Move line down" })
-map("i", "<A-j>", "<Esc>:m .+1<CR>==gi", { desc = "Move line down (insert)" })
-map("i", "<A-k>", "<Esc>:m .-2<CR>==gi", { desc = "Move line up (insert)" })
+map("n", "<A-k>", function()
+  if vim.fn.line(".") > 1 then
+    vim.cmd(":m .-2<CR>==")
+  end
+end, { desc = "Move line up" })
+map("n", "<A-j>", function()
+  if vim.fn.line(".") < vim.fn.line("$") then
+    vim.cmd(":m .+1<CR>==")
+  end
+end, { desc = "Move line down" })
+map("i", "<A-j>", function()
+  if vim.fn.line(".") < vim.fn.line("$") then
+    vim.cmd(":m .+1<CR>==gi")
+  end
+end, { desc = "Move line down (insert)" })
+map("i", "<A-k>", function()
+  if vim.fn.line(".") > 1 then
+    vim.cmd(":m .-2<CR>==gi")
+  end
+end, { desc = "Move line up (insert)" })
 
 -- Start selection in Normal Mode
 map('n', '<S-Left>', 'v<Left>')
@@ -102,22 +121,24 @@ map("n", "<S-PageUp>", ":bprevious<CR>", { desc = "Previous buffer" })
 map("n", "<S-PageDown>", ":bnext<CR>", { desc = "Next buffer" })
 map("n", "<S-t>", ":enew<CR>", { desc = "New buffer" })
 
--- Delete buffer is with file explorer api handle further down the file
+-- Tab management
 map("n", "<C-PageUp>", ":-tabnext<CR>", { desc = "Previous tab" })
 map("n", "<C-PageDown>", ":+tabnext<CR>", { desc = "Next tab" })
 map("n", "<A-t>", ":tabnew<CR>", { desc = "New tab" })
 map("n", "<A-q>", ":tabclose<CR>", { desc = "Close tab" })
 
--- Window management
-map("n", "<C-=>", "<C-w>=", { desc = "Equalize window sizes" })
-map("n", "<A-w>", ":wnew<CR>", { desc = "New window" })
+-- Split management
+map("n", "<C-=>", "<C-w>=", { desc = "Equalize split sizes" })
+map("n", "<A-w>", ":vsplit<CR>", { desc = "New vertical split" })
+map("n", "<A-S-w>", ":split<CR>", { desc = "New horizontal split" })
+
 -- Move between splits with Alt + Arrow keys
 map("n", "<A-Left>", "<C-w>h", { desc = "Focus left window" })
 map("n", "<A-Right>", "<C-w>l", { desc = "Focus right window" })
 map("n", "<A-Up>", "<C-w>k", { desc = "Focus upper window" })
 map("n", "<A-Down>", "<C-w>j", { desc = "Focus lower window" })
 
--- resize splits with Alt + Shift + Arrow
+-- Resize splits with Alt + Shift + Arrow
 map("n", "<A-S-Left>", "<C-w><", { desc = "Resize split left" })
 map("n", "<A-S-Right>", "<C-w>>", { desc = "Resize split right" })
 map("n", "<A-S-Up>", "<C-w>+", { desc = "Resize split up" })
@@ -137,7 +158,7 @@ end
 -- Reload a Lua module
 function _G.ReloadConfig()
   for name, _ in pairs(package.loaded) do
-    if name:match("^user") then -- or your config namespace
+    if name:match("^user") then
       package.loaded[name] = nil
     end
   end
@@ -165,10 +186,7 @@ vim.opt.rtp:prepend(lazypath)
 -- Plugin configuration
 require("lazy").setup({
   -- Dracula
-  {
-    "Mofiqul/dracula.nvim",
-    lazy = true,
-  },
+  { "Mofiqul/dracula.nvim",        lazy = true },
 
   -- VSCode dark+ theme
   {
@@ -183,7 +201,7 @@ require("lazy").setup({
     end
   },
 
-  -- Tokyonight (has "storm", "night", "moon" variants, all dark)
+  -- Tokyonight
   {
     "folke/tokyonight.nvim",
     config = function()
@@ -191,30 +209,30 @@ require("lazy").setup({
     end
   },
 
-  -- Catppuccin (choose "mocha" for dark high contrast)
+  -- Catppuccin
   {
     "catppuccin/nvim",
     name = "catppuccin",
     config = function()
       require("catppuccin").setup({
-        flavour = "mocha", -- latte, frappe, macchiato, mocha
+        flavour = "mocha",
         transparent_background = false,
       })
     end
   },
 
-  -- Gruvbox high contrast dark
+  -- Gruvbox
   {
     "ellisonleao/gruvbox.nvim",
     config = function()
       vim.o.background = "dark"
       require("gruvbox").setup({
-        contrast = "hard", -- can be "hard", "soft" or ""
+        contrast = "hard",
       })
     end
   },
 
-  -- Nightfox theme pack (includes "carbonfox" = high contrast dark)
+  -- Nightfox
   {
     "EdenEast/nightfox.nvim",
     config = function()
@@ -222,12 +240,12 @@ require("lazy").setup({
     end
   },
 
-  -- OneDark Pro (Atom/VSCode inspired)
+  -- OneDark
   {
     "navarasu/onedark.nvim",
     config = function()
       require("onedark").setup({
-        style = "darker" -- "dark", "darker", "cool", "deep", "warm", "warmer"
+        style = "darker"
       })
     end
   },
@@ -244,6 +262,7 @@ require("lazy").setup({
         },
         filters = {
           dotfiles = false,
+          git_ignored = false,
         },
         renderer = {
           icons = {
@@ -279,33 +298,23 @@ require("lazy").setup({
       map("n", "<A-f>", ":NvimTreeFindFile<CR>", { desc = "Focus file explorer" })
       map("n", "<S-w>", function()
         local buf_ft = vim.bo.filetype
-
-        -- If in nvim-tree, just close it
         if buf_ft == "NvimTree" then
           api.tree.close()
           return
         end
-
-        -- If buffer is modified, prompt user
         if vim.bo.modified then
           local choice = vim.fn.confirm(
             "Buffer has unsaved changes. Save before closing?",
             "&Yes\n&No\n&Cancel",
             1
           )
-
           if choice == 1 then
-            vim.cmd("write") -- Save
+            vim.cmd("write")
           elseif choice == 3 then
-            return           -- Cancel
+            return
           end
-          -- choice == 2 means "No" → just close without saving
         end
-
-        -- Close the current buffer
         vim.cmd("bdelete")
-
-        -- If focus ends up on nvim-tree, close it too
         if vim.bo.filetype == "NvimTree" then
           api.tree.close()
         end
@@ -313,10 +322,94 @@ require("lazy").setup({
     end
   },
 
-  -- Web Dev icons
+  -- Embedded Terminal
   {
-    "nvim-tree/nvim-web-devicons", lazy = true, priority = 100
+    "akinsho/toggleterm.nvim",
+    version = "*",
+    config = function()
+      require("toggleterm").setup({
+        open_mapping = false,
+        direction = "float",
+        float_opts = {
+          border = 'curved',
+          winblend = 3,
+        },
+        close_on_exit = true,
+        shade_terminals = false,
+      })
+
+      function _G.find_project_root(bufnr)
+        bufnr = bufnr or 0
+        local buf_path = vim.api.nvim_buf_get_name(bufnr)
+        if buf_path == "" then
+          return vim.fn.getcwd()
+        end
+        local root_markers = { ".git" }
+        local start_dir = vim.fn.fnamemodify(buf_path, ":p:h")
+        local project_root = vim.fs.find(root_markers,
+          { path = start_dir, upward = true, type = "file_or_dir", limit = 1 })
+        if project_root and #project_root > 0 then
+          return vim.fn.fnamemodify(project_root[1], ":p:h")
+        else
+          return start_dir
+        end
+      end
+
+      _G.project_terminals = {}
+
+      function _G.ToggleProjectTerminal()
+        if vim.bo.buftype == 'terminal' then
+          local current_term_bufnr = vim.api.nvim_get_current_buf()
+          for _, term in pairs(_G.project_terminals) do
+            if term and term.bufnr and term.bufnr == current_term_bufnr then
+              term:toggle()
+              return
+            end
+          end
+          require('toggleterm').toggle(0)
+          return
+        end
+
+        if vim.bo.buftype ~= "" and vim.bo.buftype ~= "nofile" then
+          print("ToggleTerm: Cannot create a terminal for this buffer type.")
+          return
+        end
+
+        local project_root = _G.find_project_root()
+        local term = _G.project_terminals[project_root]
+
+        if term and term.bufnr and vim.api.nvim_buf_is_valid(term.bufnr) then
+          term:toggle()
+          return
+        end
+
+        local Terminal = require("toggleterm.terminal").Terminal
+        local new_term = Terminal:new({
+          cwd = project_root,
+          hidden = true,
+          direction = "float",
+        })
+
+        _G.project_terminals[project_root] = new_term
+        new_term:toggle()
+      end
+
+      map('n', '<c-t>', '<cmd>lua _G.ToggleProjectTerminal()<CR>', {
+        noremap = true,
+        silent = true,
+        desc = "Toggle Project-local terminal"
+      })
+
+      map('t', '<c-t>', '<C-\\><C-n><cmd>lua _G.ToggleProjectTerminal()<CR>', {
+        noremap = true,
+        silent = true,
+        desc = "Toggle Project-local terminal"
+      })
+    end,
   },
+
+  -- Web Dev icons
+  { "nvim-tree/nvim-web-devicons", lazy = true, priority = 100 },
 
   -- Fuzzy finder
   {
@@ -356,7 +449,7 @@ require("lazy").setup({
     build = ":TSUpdate",
     config = function()
       require("nvim-treesitter.configs").setup({
-        ensure_installed = { "lua", "python", "javascript", "typescript", "html", "css", "go", "rust", "c", "zig", },
+        ensure_installed = { "lua", "python", "javascript", "typescript", "html", "css", "go", "rust", "c", "zig" },
         highlight = { enable = true },
         indent = { enable = true }
       })
@@ -371,9 +464,7 @@ require("lazy").setup({
   },
 
   -- Git stuff
-  {
-    "tpope/vim-fugitive"
-  },
+  { "tpope/vim-fugitive" },
   {
     "lewis6991/gitsigns.nvim",
     config = function()
@@ -408,12 +499,21 @@ require("lazy").setup({
           'lua_ls', 'pyright', 'ts_ls', 'jdtls', 'rust_analyzer', 'clangd', 'zls',
         },
         handlers = {
-          lsp.default_setup,
-
-          -- It will be called *instead* of the default one.
+          pyright = function()
+            require('lspconfig').pyright.setup({
+              settings = {
+                python = {
+                  pythonPath = "/usr/bin/python3",
+                  analysis = {
+                    autoSearchPaths = true,
+                    useLibraryCodeForTypes = true,
+                  },
+                },
+              },
+            })
+          end,
           zls = function()
-            local lspconfig = require('lspconfig')
-            lspconfig.zls.setup({
+            require('lspconfig').zls.setup({
               settings = {
                 zls = {
                   zig_lib_path = "/snap/zig/14937/lib",
@@ -421,6 +521,7 @@ require("lazy").setup({
               }
             })
           end,
+          lsp.default_setup,
         }
       })
 
@@ -468,110 +569,34 @@ require("lazy").setup({
     end
   },
 
-  -- Embedded Terminal
-  {
-    "akinsho/toggleterm.nvim",
-    version = "*",
-    config = function()
-      require("toggleterm").setup({
-        open_mapping = false,
-        direction = "float",
-        float_opts = {
-          border = 'curved',
-          winblend = 3,
-        },
-        close_on_exit = true, -- keep if you want the shell process to cause a real close on exit
-        shade_terminals = false,
-      })
-
-      -- Store terminals keyed by CWD
-      _G.cwd_terminals = {}
-
-      function _G.ToggleCwdTerminal()
-        -- If we're already in a terminal buffer, try to toggle that terminal instance
-        if vim.bo.buftype == 'terminal' then
-          local current_term_bufnr = vim.api.nvim_get_current_buf()
-          for _, term in pairs(_G.cwd_terminals) do
-            if term and term.bufnr == current_term_bufnr then
-              term:toggle()
-              return
-            end
-          end
-          -- fallback: toggle the global toggleterm default terminal
-          require('toggleterm').toggle(0)
-          return
-        end
-
-        -- refuse for edge case buffer types
-        if vim.bo.buftype ~= "" then
-          print("ToggleTerm: Cannot create a terminal for this buffer type.")
-          return
-        end
-
-        local cwd = vim.fn.getcwd()
-        local term = _G.cwd_terminals[cwd]
-
-        -- reuse only if the stored Terminal has a valid buffer number
-        if term and term.bufnr and vim.api.nvim_buf_is_valid(term.bufnr) then
-          term:toggle()
-          return
-        end
-
-        -- create a new Terminal for this cwd and keep it in the map
-        local Terminal = require("toggleterm.terminal").Terminal
-        local new_term = Terminal:new({
-          cwd = cwd,
-          hidden = true, -- preserve buffer contents when float closes
-          direction = "float",
-        })
-
-        _G.cwd_terminals[cwd] = new_term
-        new_term:toggle()
-      end
-
-      map('n', '<c-t>', '<cmd>lua _G.ToggleCwdTerminal()<CR>', {
-        noremap = true,
-        silent = true,
-        desc = "Toggle CWD-local terminal"
-      })
-
-      map('t', '<c-t>', '<C-\\><C-n><cmd>lua _G.ToggleCwdTerminal()<CR>', {
-        noremap = true,
-        silent = true,
-        desc = "Toggle CWD-local terminal"
-      })
-    end,
-  },
-
   -- Commenting plugin
   {
     'numToStr/Comment.nvim',
     config = function()
       require('Comment').setup({
-        -- Create a custom mapping
         mappings = {
-          basic = false, -- enable default mappings (gc, gb)
-          extra = false, -- enable extra mappings (g<, g>, etc.)
+          basic = false,
+          extra = false,
         },
       })
 
       local api = require('Comment.api')
 
-      vim.keymap.set('n', '<leader>cc', function()
+      map('n', '<leader>cc', function()
         api.toggle.linewise.current()
       end, { desc = 'Toggle comment (linewise)' })
 
-      vim.keymap.set('x', '<leader>cc', function()
+      map('x', '<leader>cc', function()
         local esc = vim.api.nvim_replace_termcodes('<ESC>', true, false, true)
         vim.api.nvim_feedkeys(esc, 'nx', false)
         api.toggle.linewise(vim.fn.visualmode())
       end, { desc = 'Toggle comment (visual)' })
 
-      vim.keymap.set('n', '<leader>bb', function()
+      map('n', '<leader>bb', function()
         api.toggle.blockwise.current()
       end, { desc = 'Toggle comment (block)' })
 
-      vim.keymap.set('x', '<leader>bb', function()
+      map('x', '<leader>bb', function()
         local esc = vim.api.nvim_replace_termcodes('<ESC>', true, false, true)
         vim.api.nvim_feedkeys(esc, 'nx', false)
         api.toggle.blockwise(vim.fn.visualmode())
@@ -632,7 +657,6 @@ require("lazy").setup({
     'mg979/vim-visual-multi',
     branch = 'master',
     init = function()
-      -- Set the keymaps before the plugin loads
       vim.g.VM_maps = {
         ['Find Next']       = '<C-d>',
         ['Find Prev']       = '<C-D>',
@@ -662,33 +686,50 @@ require("lazy").setup({
         stop_eof = true,
         respect_scrolloff = true,
         cursor_scrolls_alone = true,
-        mappings = {} -- Disable default <C-u>, <C-d>, etc.
+        mappings = {}
       })
 
-      local neoscroll          = require('neoscroll')
-      local t                  = {}
+      local t = {}
 
-      -- Space + Arrow keys for smooth scroll
-      t['<C-Up>']              = { 'scroll', { '-vim.wo.scroll', 'true', '300' } }
-      t['<C-Down>']            = { 'scroll', { 'vim.wo.scroll', 'true', '300' } }
+      t['<C-Up>'] = function()
+        require('neoscroll').scroll(-vim.wo.scroll, { move_cursor = true, duration = 300 })
+      end
+      t['<C-Down>'] = function()
+        require('neoscroll').scroll(vim.wo.scroll, { move_cursor = true, duration = 300 })
+      end
+      t['<ScrollWheelUp>'] = function()
+        require('neoscroll').scroll(-8, { move_cursor = true, duration = 80 })
+      end
+      t['<ScrollWheelDown>'] = function()
+        require('neoscroll').scroll(8, { move_cursor = true, duration = 80 })
+      end
+      t['<A-ScrollWheelUp>'] = function()
+        require('neoscroll').scroll(-17, { move_cursor = true, duration = 80 })
+      end
+      t['<A-ScrollWheelDown>'] = function()
+        require('neoscroll').scroll(17, { move_cursor = true, duration = 80 })
+      end
 
-      -- Smooth mouse vertical scroll
-      t['<ScrollWheelUp>']     = { 'scroll', { '-8', 'true', '80' } }
-      t['<ScrollWheelDown>']   = { 'scroll', { '8', 'true', '80' } }
-      t['<A-ScrollWheelUp>']   = { 'scroll', { '-17', 'true', '80' } }
-      t['<A-ScrollWheelDown>'] = { 'scroll', { '17', 'true', '80' } }
-
-      require('neoscroll.config').set_mappings(t)
+      for key, func in pairs(t) do
+        vim.keymap.set({ 'n', 'x' }, key, func, { noremap = true, silent = true })
+      end
     end
   },
 })
 
+-- Autocommand for formatting
 local format_on_save_group = vim.api.nvim_create_augroup("FormatOnSave", { clear = true })
 
 vim.api.nvim_create_autocmd("BufWritePre", {
-  pattern = "*",
+  pattern = { "*.lua", "*.py", "*.js", "*.ts", "*.html", "*.css", "*.go", "*.rs", "*.c", "*.zig" },
   callback = function()
-    vim.lsp.buf.format({ async = false })
+    local clients = vim.lsp.get_clients({ bufnr = 0 })
+    for _, client in ipairs(clients) do
+      if client.supports_method("textDocument/formatting") then
+        vim.lsp.buf.format({ async = false })
+        return
+      end
+    end
   end,
   group = format_on_save_group,
 })
