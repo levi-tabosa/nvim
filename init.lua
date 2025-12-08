@@ -14,7 +14,7 @@ vim.opt.termguicolors = true
 vim.opt.cursorline = true
 vim.opt.signcolumn = "yes"
 vim.opt.wrap = false
-
+vim.opt.clipboard = "unnamedplus"
 local map = vim.keymap.set
 
 -- Mapeamento para buscar texto selecionado com Ctrl+f
